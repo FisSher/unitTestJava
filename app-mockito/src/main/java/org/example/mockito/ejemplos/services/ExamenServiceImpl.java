@@ -2,16 +2,20 @@ package org.example.mockito.ejemplos.services;
 
 import org.example.mockito.ejemplos.models.Examen;
 import org.example.mockito.ejemplos.repositories.ExamenRepository;
+import org.example.mockito.ejemplos.repositories.PreguntaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public class ExamenServiceImpl implements ExamenService{
     private ExamenRepository examenRepository;
+    private PreguntaRepository preguntaRepository;
 
-    public ExamenServiceImpl(ExamenRepository examenRepository) {
+
+    public ExamenServiceImpl(ExamenRepository examenRepository, PreguntaRepository preguntaRepository) {
         this.examenRepository = examenRepository;
+        this.preguntaRepository = preguntaRepository;
     }
-
 
     @Override
     public Optional<Examen> findExamenPorNombre(String nombre) {
@@ -19,5 +23,17 @@ public class ExamenServiceImpl implements ExamenService{
                 .stream()
                 .filter(e -> e.getNombre().contains(nombre))
                 .findFirst();
+    }
+
+    @Override
+    public Examen findExamenPorNombreConPreguntas(String nombre) {
+        Optional<Examen> examenOptional = findExamenPorNombre(nombre);
+        Examen examen = null;
+        if(examenOptional.isPresent()){
+            examen = examenOptional.orElseThrow();
+            List<String> preguntas = preguntaRepository.findPreguntaSPorExamenId(examen.getId());
+            examen.setPreguntas(preguntas);
+        }
+        return examen;
     }
 }
