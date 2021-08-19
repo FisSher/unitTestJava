@@ -3,18 +3,13 @@ package org.example.mockito.ejemplos.services;
 import org.example.mockito.ejemplos.models.Examen;
 import org.example.mockito.ejemplos.repositories.ExamenRepository;
 import org.example.mockito.ejemplos.repositories.PreguntaRepository;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +31,9 @@ class ExamenServiceImplTest {
     @InjectMocks
     ExamenServiceImpl service;
 
+    @Captor
+    ArgumentCaptor<Long> captor;
+
 
 //    @BeforeEach
 //    void setUp() {
@@ -52,9 +50,12 @@ class ExamenServiceImplTest {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
         Optional<Examen> examen = service.findExamenPorNombre("Matematicas");
 
-        assertTrue(examen.isPresent());
-        assertEquals(5L, examen.orElseThrow().getId());
-        assertEquals("Matematicas", examen.get().getNombre());
+
+        assertAll(
+                () -> assertTrue(examen.isPresent()),
+                () -> assertEquals(5L, examen.orElseThrow().getId()),
+                () -> assertEquals("Matematicas", examen.get().getNombre())
+        );
     }
 
     @Test
@@ -71,8 +72,10 @@ class ExamenServiceImplTest {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
         when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
-        assertEquals(5, examen.getPreguntas().size());
-        assertTrue(examen.getPreguntas().contains("Aritmetica"));
+        assertAll(
+                () -> assertEquals(5, examen.getPreguntas().size()),
+                () -> assertTrue(examen.getPreguntas().contains("Aritmetica"))
+        );
     }
 
     @Test
@@ -80,8 +83,10 @@ class ExamenServiceImplTest {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
         when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
-        assertEquals(5, examen.getPreguntas().size());
-        assertTrue(examen.getPreguntas().contains("Aritmetica"));
+        assertAll(
+                () -> assertEquals(5, examen.getPreguntas().size()),
+                () -> assertTrue(examen.getPreguntas().contains("Aritmetica"))
+        );
         verify(repository).findAll();
         verify(preguntaRepository).findPreguntaSPorExamenId(anyLong());
     }
@@ -113,11 +118,14 @@ class ExamenServiceImplTest {
         Examen examen = service.guardar(newExamen);
 
         //THEN
-        assertNotNull(examen.getId());
-        assertEquals(8L, examen.getId());
-        assertEquals("Fisica", examen.getNombre());
+        assertAll(
+                () -> assertNotNull(examen.getId()),
+                () -> assertEquals(8L, examen.getId()),
+                () -> assertEquals("Fisica", examen.getNombre())
+        );
         verify(repository).guardar(any(Examen.class));
         verify(preguntaRepository).guardarVarias((anyList()));
+
     }
 
     @Test
@@ -127,9 +135,67 @@ class ExamenServiceImplTest {
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             service.findExamenPorNombreConPreguntas("Matematicas");
         });
-        assertEquals(IllegalArgumentException.class,exception.getClass());
+        assertEquals(IllegalArgumentException.class, exception.getClass());
 
         verify(repository).findAll();
         verify(preguntaRepository).findPreguntaSPorExamenId(isNull());
+    }
+
+    @Test
+    void testArgumentMatchers() {
+        when(repository.findAll()).thenReturn(Datos.EXAMENES);
+        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        service.findExamenPorNombreConPreguntas("Matematicas");
+
+        verify(repository).findAll();
+
+        //Multiple ways to do the same.
+        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(arg -> arg != null && arg.equals(5L)));
+        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(arg -> arg != null && arg >= 5L));
+        verify(preguntaRepository).findPreguntaSPorExamenId(eq(5L));
+
+    }
+
+
+    //Will fail
+    @Test
+    void testArgumentMatchers2() {
+        when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NEGATIVO);
+        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        service.findExamenPorNombreConPreguntas("Matematicas");
+
+        verify(repository).findAll();
+        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(new MiArgsMatchers()));
+    }
+
+    @Test
+    void testArgumentCaptor() {
+        when(repository.findAll()).thenReturn(Datos.EXAMENES);
+        service.findExamenPorNombreConPreguntas("Matematicas");
+
+       // ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class); -> can be done by annotations.
+        verify(preguntaRepository).findPreguntaSPorExamenId(captor.capture());
+
+        assertAll(
+                () -> assertEquals(5L, captor.getValue())
+        );
+    }
+
+    //ArgumentMatchers2
+    public static class MiArgsMatchers implements ArgumentMatcher<Long> {
+
+        private Long argument;
+
+        @Override
+        public boolean matches(Long argument) {
+            this.argument = argument;
+            return argument != null && argument > 0;
+        }
+
+        @Override
+        public String toString() {
+            return "personalized error message, " + argument +
+                    " argument must be greater than 0";
+        }
     }
 }
