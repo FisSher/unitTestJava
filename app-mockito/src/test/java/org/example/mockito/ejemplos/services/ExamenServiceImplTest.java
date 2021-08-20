@@ -70,7 +70,7 @@ class ExamenServiceImplTest {
     @Test
     void testPreguntasExamen() {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
-        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
         assertAll(
                 () -> assertEquals(5, examen.getPreguntas().size()),
@@ -81,14 +81,14 @@ class ExamenServiceImplTest {
     @Test
     void testPreguntasExamenVerify() {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
-        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
         assertAll(
                 () -> assertEquals(5, examen.getPreguntas().size()),
                 () -> assertTrue(examen.getPreguntas().contains("Aritmetica"))
         );
         verify(repository).findAll();
-        verify(preguntaRepository).findPreguntaSPorExamenId(anyLong());
+        verify(preguntaRepository).findPreguntasPorExamenId(anyLong());
     }
 
     @Test
@@ -131,28 +131,28 @@ class ExamenServiceImplTest {
     @Test
     void testManejoExceptions() {
         when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NULL);
-        when(preguntaRepository.findPreguntaSPorExamenId(isNull())).thenThrow(IllegalArgumentException.class);
+        when(preguntaRepository.findPreguntasPorExamenId(isNull())).thenThrow(IllegalArgumentException.class);
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             service.findExamenPorNombreConPreguntas("Matematicas");
         });
         assertEquals(IllegalArgumentException.class, exception.getClass());
 
         verify(repository).findAll();
-        verify(preguntaRepository).findPreguntaSPorExamenId(isNull());
+        verify(preguntaRepository).findPreguntasPorExamenId(isNull());
     }
 
     @Test
     void testArgumentMatchers() {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
-        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         service.findExamenPorNombreConPreguntas("Matematicas");
 
         verify(repository).findAll();
 
         //Multiple ways to do the same.
-        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(arg -> arg != null && arg.equals(5L)));
-        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(arg -> arg != null && arg >= 5L));
-        verify(preguntaRepository).findPreguntaSPorExamenId(eq(5L));
+        verify(preguntaRepository).findPreguntasPorExamenId(argThat(arg -> arg != null && arg.equals(5L)));
+        verify(preguntaRepository).findPreguntasPorExamenId(argThat(arg -> arg != null && arg >= 5L));
+        verify(preguntaRepository).findPreguntasPorExamenId(eq(5L));
 
     }
 
@@ -161,11 +161,11 @@ class ExamenServiceImplTest {
     @Test
     void testArgumentMatchers2() {
         when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NEGATIVO);
-        when(preguntaRepository.findPreguntaSPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
         service.findExamenPorNombreConPreguntas("Matematicas");
 
         verify(repository).findAll();
-        verify(preguntaRepository).findPreguntaSPorExamenId(argThat(new MiArgsMatchers()));
+        verify(preguntaRepository).findPreguntasPorExamenId(argThat(new MiArgsMatchers()));
     }
 
     @Test
@@ -174,7 +174,7 @@ class ExamenServiceImplTest {
         service.findExamenPorNombreConPreguntas("Matematicas");
 
        // ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class); -> can be done by annotations.
-        verify(preguntaRepository).findPreguntaSPorExamenId(captor.capture());
+        verify(preguntaRepository).findPreguntasPorExamenId(captor.capture());
 
         assertAll(
                 () -> assertEquals(5L, captor.getValue())
