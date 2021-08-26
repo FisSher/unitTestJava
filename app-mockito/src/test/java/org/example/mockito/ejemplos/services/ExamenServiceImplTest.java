@@ -1,8 +1,9 @@
 package org.example.mockito.ejemplos.services;
 
+import org.example.mockito.ejemplos.Datos;
 import org.example.mockito.ejemplos.models.Examen;
-import org.example.mockito.ejemplos.repositories.ExamenRepository;
-import org.example.mockito.ejemplos.repositories.PreguntaRepository;
+import org.example.mockito.ejemplos.repositories.ExamenRepositoryImpl;
+import org.example.mockito.ejemplos.repositories.PreguntaRepositoryImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -23,10 +24,10 @@ import static org.mockito.Mockito.*;
 class ExamenServiceImplTest {
 
     @Mock
-    ExamenRepository repository;
+    ExamenRepositoryImpl repository;
 
     @Mock
-    PreguntaRepository preguntaRepository;
+    PreguntaRepositoryImpl preguntaRepository;
 
     @InjectMocks
     ExamenServiceImpl service;
@@ -173,12 +174,81 @@ class ExamenServiceImplTest {
         when(repository.findAll()).thenReturn(Datos.EXAMENES);
         service.findExamenPorNombreConPreguntas("Matematicas");
 
-       // ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class); -> can be done by annotations.
+        // ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class); -> can be done by annotations.
         verify(preguntaRepository).findPreguntasPorExamenId(captor.capture());
 
         assertAll(
                 () -> assertEquals(5L, captor.getValue())
         );
+    }
+
+    @Test
+    void testDoThrow() {
+        Examen examen = Datos.EXAMEN;
+        examen.setPreguntas(Datos.PREGUNTAS);
+        doThrow(IllegalArgumentException.class).when(preguntaRepository).guardarVarias(anyList());
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            service.guardar(examen);
+        });
+    }
+
+    @Test
+    void testDoAnswer() {
+        when(repository.findAll()).thenReturn(Datos.EXAMENES);
+        //when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(org.example.mockito.ejemplos.Datos.PREGUNTAS);
+        doAnswer(invocation -> {
+            Long id = invocation.getArgument(0);
+            return id == 5L ? Datos.PREGUNTAS : null;
+        }).when(preguntaRepository).findPreguntasPorExamenId(anyLong());
+
+        Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
+        assertEquals(5, examen.getPreguntas().size());
+        assertTrue(examen.getPreguntas().contains("Geometria"));
+        assertEquals(5L, examen.getId());
+        assertEquals("Matematicas", examen.getNombre());
+        verify(preguntaRepository, times(1)).findPreguntasPorExamenId(anyLong());
+    }
+
+
+    @Test
+    void testDoAnswerGuardarExamen() {
+        //GIVEN
+        Examen newExamen = Datos.EXAMEN;
+        newExamen.setPreguntas(Datos.PREGUNTAS);
+        doAnswer(new Answer<Examen>() {
+            Long secuencia = 8L;
+
+            @Override
+            public Examen answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Examen examen = invocationOnMock.getArgument(0);
+                examen.setId(secuencia++);
+                return examen;
+            }
+        }).when(repository).guardar(any(Examen.class));
+
+        // WHEN
+        Examen examen = service.guardar(newExamen);
+
+        //THEN
+        assertAll(
+                () -> assertNotNull(examen.getId()),
+                () -> assertEquals(8L, examen.getId()),
+                () -> assertEquals("Fisica", examen.getNombre())
+        );
+        verify(repository).guardar(any(Examen.class));
+        verify(preguntaRepository).guardarVarias((anyList()));
+    }
+
+    @Test
+    void testDoCallRealMethod() {
+        when(repository.findAll()).thenReturn(Datos.EXAMENES);
+        //when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+        doCallRealMethod().when(preguntaRepository).findPreguntasPorExamenId(anyLong());
+
+        Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
+        assertEquals(5L, examen.getId());
+        assertEquals("Matematicas", examen.getNombre());
     }
 
     //ArgumentMatchers2

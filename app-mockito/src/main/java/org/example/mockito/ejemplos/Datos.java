@@ -1,4 +1,4 @@
-package org.example.mockito.ejemplos.services;
+package org.example.mockito.ejemplos;
 
 import org.example.mockito.ejemplos.models.Examen;
 import org.mockito.internal.matchers.Null;
